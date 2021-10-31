@@ -3,16 +3,18 @@ import signal
 import os
 import asyncio
 
+from pyrogram import idle, filters, types, emoji
 from pyrogram import idle
 from sys import executable
 from quoters import Quote
+import threading
 
-from telegram import ParseMode
+from telegram import ParseMode, InlineKeyboardButton
 from telegram.ext import Filters, InlineQueryHandler, MessageHandler, CommandHandler, CallbackQueryHandler, CallbackContext
 from telegram.utils.helpers import escape_markdown
 from telegraph import Telegraph
 from wserver import start_server_async
-from bot import bot, app, dispatcher, updater, botStartTime, IGNORE_PENDING_REQUESTS, IS_VPS, PORT, alive, web, OWNER_ID, AUTHORIZED_CHATS, telegraph_token, BOT_NO
+from bot import bot, app, dispatcher, updater, botStartTime, IGNORE_PENDING_REQUESTS, IS_VPS, PORT, alive, web, nox, OWNER_ID, AUTHORIZED_CHATS, telegraph_token, BOT_NO
 from bot.helper.ext_utils import fs_utils
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.message_utils import *
@@ -49,6 +51,14 @@ def stats(update, context):
             f'<b><i>DISK</i></b>: {disk}%\n'
     keyboard = [[InlineKeyboardButton("CLOSE", callback_data="stats_close")]]
     main = sendMarkup(stats, context.bot, update, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+def call_back_data(update, context):
+    global main
+    query = update.callback_query
+    query.answer()
+    main.delete()
+    main = None
 
 
 def start(update, context):
@@ -253,6 +263,8 @@ def main():
     stats_handler = CommandHandler(BotCommands.StatsCommand,
                                    stats, filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
     log_handler = CommandHandler(BotCommands.LogCommand, log, filters=CustomFilters.owner_filter | CustomFilters.sudo_user, run_async=True)
+    del_data_msg = CallbackQueryHandler(call_back_data, pattern="stats_close")
+    dispatcher.add_handler(del_data_msg)
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(ping_handler)
     dispatcher.add_handler(restart_handler)
@@ -260,7 +272,8 @@ def main():
     dispatcher.add_handler(stats_handler)
     dispatcher.add_handler(log_handler)
     updater.start_polling(drop_pending_updates=IGNORE_PENDING_REQUESTS)
-    LOGGER.info("Bot Started!")
+    LOGGER.info("⚠️ If Any optional vars not be filled it will use Defaults vars")
+    LOGGER.info("📶 Bot Started!")
     signal.signal(signal.SIGINT, fs_utils.exit_clean_up)
     rss_init()
 
